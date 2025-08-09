@@ -1,4 +1,5 @@
 # WeatherWise: Your Personal Weather Companion
+By Ankush Khakale
 
 Welcome to WeatherWise, your go-to destination for accurate and beautifully presented weather information. We've crafted this intuitive weather application using HTML, CSS, and JavaScript to bring you a seamless weather-checking experience, whether you're planning your day or looking ahead.
 
