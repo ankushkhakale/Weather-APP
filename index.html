@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Website</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style for the weather card background based on time */
+        .day {
+            background: linear-gradient(to bottom, #87ceeb, #4682b4);
+        }
+        .night {
+            background: linear-gradient(to bottom, #0f172a, #334155);
+        }
+        /* Simple spinner animation */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #ffffff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Hide scrollbar but allow scrolling */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* --- Strategic Media Queries for Responsiveness --- */
+
+        /* For standard mobile devices (up to 480px) */
+        @media (max-width: 480px) {
+            #cityName {
+                font-size: 1.875rem; /* 30px */
+            }
+            #temperature {
+                font-size: 4.5rem; /* 72px */
+            }
+            #weatherDescription {
+                font-size: 1.125rem; /* 18px */
+            }
+            .main-padding {
+                padding: 1rem; /* Reduce main padding on small screens */
+            }
+        }
+
+        /* For very small mobile devices (up to 360px) */
+        @media (max-width: 360px) {
+            #cityName {
+                font-size: 1.5rem; /* 24px */
+            }
+            #temperature {
+                font-size: 3.75rem; /* 60px */
+            }
+            #forecastGrid {
+                gap: 0.5rem; /* Reduce gap between forecast items */
+            }
+            .forecast-card {
+                width: 5.5rem; /* Make forecast cards slightly smaller */
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl text-white overflow-hidden">
+        <div class="main-padding p-4 sm:p-6">
+            <!-- Search Bar -->
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <input type="text" id="cityInput" class="w-full px-4 py-3 bg-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-white/70 text-lg" placeholder="Enter city name...">
+                <button id="searchBtn" class="bg-blue-500 hover:bg-blue-600 transition-colors px-4 py-3 rounded-xl flex items-center justify-center font-semibold text-lg flex-shrink-0">
+                    <i class="fa-solid fa-magnifying-glass sm:mr-2"></i> <span class="hidden sm:inline">Search</span>
+                </button>
+            </div>
+             <div class="text-center mb-4">
+                <button id="locationBtn" class="bg-green-500 hover:bg-green-600 transition-colors px-4 py-2 rounded-xl flex items-center justify-center font-semibold text-base mx-auto">
+                    <i class="fa-solid fa-location-crosshairs mr-2"></i> Use My Location
+                </button>
+            </div>
+            
+            <!-- Date and Time Display -->
+            <div id="dateTime" class="text-center text-lg opacity-80 mb-4"></div>
+
+            <!-- Weather Display Area -->
+            <div id="weatherDisplay" class="text-center">
+                <!-- Loading Spinner -->
+                <div id="loader" class="hidden mx-auto spinner"></div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="hidden bg-red-500/50 p-4 rounded-xl">
+                    <div id="errorText"></div>
+                </div>
+
+                <!-- Main Weather Info Card -->
+                <div id="weatherCard" class="hidden">
+                    <h2 id="cityName" class="text-3xl md:text-4xl font-bold tracking-wide"></h2>
+                    <p id="countryName" class="text-lg opacity-80 mb-4"></p>
+                    <div id="weatherIcon" class="text-8xl my-4"></div>
+                    <p id="temperature" class="text-6xl md:text-7xl font-bold"></p>
+                    <p id="weatherDescription" class="text-xl md:text-2xl capitalize mt-2"></p>
+                    <div class="grid grid-cols-2 gap-4 mt-8 text-left bg-white/10 p-4 rounded-xl">
+                        <div><p class="font-semibold text-base sm:text-lg">Feels Like</p><p id="feelsLike" class="text-lg sm:text-xl"></p></div>
+                        <div><p class="font-semibold text-base sm:text-lg">Humidity</p><p id="humidity" class="text-lg sm:text-xl"></p></div>
+                        <div><p class="font-semibold text-base sm:text-lg">Wind Speed</p><p id="windSpeed" class="text-lg sm:text-xl"></p></div>
+                        <div><p class="font-semibold text-base sm:text-lg">Pressure</p><p id="pressure" class="text-lg sm:text-xl"></p></div>
+                    </div>
+                </div>
+
+                <!-- 5-Day Forecast -->
+                <div id="forecastContainer" class="hidden mt-8">
+                    <h3 class="text-xl md:text-2xl font-bold mb-4 text-left">5-Day Forecast</h3>
+                    <div class="relative">
+                        <button id="scrollLeftBtn" class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white/30 hover:bg-white/50 transition-colors rounded-full w-8 h-8 z-10 hidden items-center justify-center"><i class="fas fa-chevron-left"></i></button>
+                        <div id="forecastGrid" class="flex gap-3 overflow-x-auto pb-4 no-scrollbar" style="scroll-behavior: smooth;">
+                            <!-- Forecast items will be injected here -->
+                        </div>
+                        <button id="scrollRightBtn" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white/30 hover:bg-white/50 transition-colors rounded-full w-8 h-8 z-10 hidden items-center justify-center"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const locationBtn = document.getElementById('locationBtn');
+        const dateTimeEl = document.getElementById('dateTime');
+        const weatherDisplay = document.getElementById('weatherDisplay');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const weatherCard = document.getElementById('weatherCard');
+        const forecastContainer = document.getElementById('forecastContainer');
+        const forecastGrid = document.getElementById('forecastGrid');
+        const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+        const scrollRightBtn = document.getElementById('scrollRightBtn');
+        const cityNameEl = document.getElementById('cityName');
+        const countryNameEl = document.getElementById('countryName');
+        const weatherIconEl = document.getElementById('weatherIcon');
+        const temperatureEl = document.getElementById('temperature');
+        const weatherDescriptionEl = document.getElementById('weatherDescription');
+        const feelsLikeEl = document.getElementById('feelsLike');
+        const humidityEl = document.getElementById('humidity');
+        const windSpeedEl = document.getElementById('windSpeed');
+        const pressureEl = document.getElementById('pressure');
+        const mainContainer = document.querySelector('.w-full.max-w-md');
+
+        // --- API Configuration ---
+        const apiKey = '2cf2fec9454004c8c98b2ebfd6c45209'; 
+        const apiBaseUrl = 'https://api.openweathermap.org/data/2.5/';
+
+        // --- Event Listeners ---
+        searchBtn.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                fetchAllWeatherData(city, null);
+            } else {
+                showError('Please enter a city name.');
+            }
+        });
+
+        cityInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                searchBtn.click();
+            }
+        });
+
+        locationBtn.addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    fetchAllWeatherData(null, { lat: latitude, lon: longitude });
+                }, handleGeoError);
+                showLoading();
+            } else {
+                showError("Geolocation is not supported by this browser.");
+            }
+        });
+
+        scrollLeftBtn.addEventListener('click', () => {
+            forecastGrid.scrollBy({ left: -200, behavior: 'smooth' });
+        });
+
+        scrollRightBtn.addEventListener('click', () => {
+            forecastGrid.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+        
+        forecastGrid.addEventListener('scroll', () => {
+            updateScrollButtons();
+        });
+        
+        window.addEventListener('resize', () => {
+            setTimeout(updateScrollButtons, 200);
+        });
+
+
+        // --- Core Functions ---
+
+        /**
+         * Fetches both current weather and 5-day forecast data.
+         * @param {string|null} city - The name of the city.
+         * @param {object|null} coords - The coordinates object {lat, lon}.
+         */
+        async function fetchAllWeatherData(city, coords) {
+            showLoading();
+            try {
+                let weatherUrl, forecastUrl;
+                if (city) {
+                    weatherUrl = `${apiBaseUrl}weather?q=${city}&appid=${apiKey}&units=metric`;
+                    forecastUrl = `${apiBaseUrl}forecast?q=${city}&appid=${apiKey}&units=metric`;
+                } else if (coords) {
+                    weatherUrl = `${apiBaseUrl}weather?lat=${coords.lat}&lon=${coords.lon}&appid=${apiKey}&units=metric`;
+                    forecastUrl = `${apiBaseUrl}forecast?lat=${coords.lat}&lon=${coords.lon}&appid=${apiKey}&units=metric`;
+                }
+
+                const [weatherResponse, forecastResponse] = await Promise.all([
+                    fetch(weatherUrl),
+                    fetch(forecastUrl)
+                ]);
+
+                if (!weatherResponse.ok) {
+                    const errorData = await weatherResponse.json();
+                    throw new Error(errorData.message || `HTTP error! status: ${weatherResponse.status}`);
+                }
+                if (!forecastResponse.ok) {
+                    const errorData = await forecastResponse.json();
+                    throw new Error(errorData.message || `HTTP error! status: ${forecastResponse.status}`);
+                }
+
+                const weatherData = await weatherResponse.json();
+                const forecastData = await forecastResponse.json();
+
+                displayWeather(weatherData);
+                displayForecast(forecastData);
+
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                showError(error.message);
+            }
+        }
+
+        /**
+         * Handles errors from the Geolocation API.
+         */
+        function handleGeoError(error) {
+             let message;
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    const detailedMessage = `
+                        <div class="text-left">
+                            <p class="font-bold text-lg mb-2">Location Access Denied</p>
+                            <p class="mb-3 text-sm">To use this feature, please allow location access in your browser's settings.</p>
+                            <p class="font-semibold mb-1 text-sm">How to fix:</p>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                <li>Click the location icon in the address bar.</li>
+                                <li>Choose "Always allow" for this site.</li>
+                                <li>Click "Use My Location" again.</li>
+                            </ul>
+                        </div>
+                    `;
+                    showError(detailedMessage, true);
+                    return; 
+                case error.POSITION_UNAVAILABLE:
+                    message = "Your location information is currently unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message = "The request to get your location timed out.";
+                    break;
+                default:
+                    message = "An unknown error occurred while getting your location.";
+                    break;
+            }
+            showError(message);
+        }
+
+        // --- UI Update Functions ---
+
+        /**
+         * Displays the current weather data on the page.
+         */
+        function displayWeather(data) {
+            hideLoading();
+            errorMessage.classList.add('hidden');
+            weatherCard.classList.remove('hidden');
+            forecastContainer.classList.remove('hidden');
+
+            cityNameEl.textContent = data.name;
+            countryNameEl.textContent = data.sys.country;
+            temperatureEl.innerHTML = `${Math.round(data.main.temp)}&deg;C`;
+            weatherDescriptionEl.textContent = data.weather[0].description;
+            feelsLikeEl.innerHTML = `${Math.round(data.main.feels_like)}&deg;C`;
+            humidityEl.textContent = `${data.main.humidity}%`;
+            windSpeedEl.textContent = `${(data.wind.speed * 3.6).toFixed(1)} km/h`;
+            pressureEl.textContent = `${data.main.pressure} hPa`;
+
+            const iconClass = getWeatherIcon(data.weather[0].id);
+            weatherIconEl.innerHTML = `<i class="fas ${iconClass}"></i>`;
+            
+            const isDay = isDayTime(data.sys.sunrise, data.sys.sunset, data.dt);
+            mainContainer.classList.toggle('day', isDay);
+            mainContainer.classList.toggle('night', !isDay);
+        }
+
+        /**
+         * Processes and displays the 5-day forecast.
+         */
+        function displayForecast(forecastData) {
+            const dailyData = processForecastData(forecastData.list);
+            forecastGrid.innerHTML = '';
+
+            dailyData.forEach(day => {
+                const dayCard = document.createElement('div');
+                dayCard.className = 'forecast-card flex-shrink-0 w-24 sm:w-28 text-center bg-white/20 p-3 sm:p-4 rounded-xl';
+                
+                const dayName = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' });
+                const iconClass = getWeatherIcon(day.icon);
+                
+                dayCard.innerHTML = `
+                    <p class="font-semibold text-base sm:text-lg">${dayName}</p>
+                    <i class="fas ${iconClass} text-3xl sm:text-4xl my-3"></i>
+                    <p class="text-lg sm:text-xl font-bold">${Math.round(day.temp_max)}&deg;</p>
+                    <p class="text-sm sm:text-md opacity-70">${Math.round(day.temp_min)}&deg;</p>
+                `;
+                forecastGrid.appendChild(dayCard);
+            });
+            
+            setTimeout(updateScrollButtons, 100);
+        }
+        
+        /**
+         * Processes the raw forecast list into a per-day summary.
+         */
+        function processForecastData(list) {
+            const daily = {};
+            list.forEach(item => {
+                const date = item.dt_txt.split(' ')[0];
+                if (!daily[date]) {
+                    daily[date] = { temps: [], icons: {}, date: date };
+                }
+                daily[date].temps.push(item.main.temp);
+                const icon = item.weather[0].id;
+                daily[date].icons[icon] = (daily[date].icons[icon] || 0) + 1;
+            });
+
+            return Object.values(daily).slice(0, 5).map(day => {
+                const mostCommonIcon = Object.keys(day.icons).reduce((a, b) => day.icons[a] > day.icons[b] ? a : b);
+                return {
+                    date: day.date,
+                    temp_max: Math.max(...day.temps),
+                    temp_min: Math.min(...day.temps),
+                    icon: mostCommonIcon
+                };
+            });
+        }
+        
+        /**
+         * Shows or hides the forecast scroll buttons based on scroll position.
+         */
+        function updateScrollButtons() {
+            if (!forecastContainer.classList.contains('hidden')) {
+                const { scrollLeft, scrollWidth, clientWidth } = forecastGrid;
+                const hasOverflow = scrollWidth > clientWidth;
+                
+                if (!hasOverflow) {
+                    scrollLeftBtn.classList.add('hidden');
+                    scrollRightBtn.classList.add('hidden');
+                    return;
+                }
+
+                scrollLeftBtn.classList.toggle('hidden', scrollLeft <= 0);
+                scrollLeftBtn.classList.toggle('flex', scrollLeft > 0);
+
+                const isAtEnd = scrollLeft >= (scrollWidth - clientWidth - 1);
+                scrollRightBtn.classList.toggle('hidden', isAtEnd);
+                scrollRightBtn.classList.toggle('flex', !isAtEnd);
+            } else {
+                 scrollLeftBtn.classList.add('hidden');
+                 scrollRightBtn.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * Updates the date and time display.
+         */
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            dateTimeEl.textContent = `${dateString} | ${timeString}`;
+        }
+
+        /**
+         * Shows the loading spinner and hides other elements.
+         */
+        function showLoading() {
+            loader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            weatherCard.classList.add('hidden');
+            forecastContainer.classList.add('hidden');
+            updateScrollButtons();
+        }
+
+        /**
+         * Hides the loading spinner.
+         */
+        function hideLoading() {
+            loader.classList.add('hidden');
+        }
+
+        /**
+         * Shows an error message.
+         */
+        function showError(content, isHtml = false) {
+            hideLoading();
+            weatherCard.classList.add('hidden');
+            forecastContainer.classList.add('hidden');
+            if (isHtml) {
+                errorText.innerHTML = content;
+            } else {
+                errorText.textContent = content.charAt(0).toUpperCase() + content.slice(1);
+            }
+            errorMessage.classList.remove('hidden');
+            updateScrollButtons();
+        }
+
+        // --- Helper Functions ---
+        function isDayTime(sunrise, sunset, dt) {
+            return dt > sunrise && dt < sunset;
+        }
+
+        function getWeatherIcon(weatherId) {
+            weatherId = Number(weatherId);
+            if (weatherId >= 200 && weatherId < 300) return 'fa-bolt';
+            if (weatherId >= 300 && weatherId < 400) return 'fa-cloud-rain';
+            if (weatherId >= 500 && weatherId < 600) return 'fa-cloud-showers-heavy';
+            if (weatherId >= 600 && weatherId < 700) return 'fa-snowflake';
+            if (weatherId >= 700 && weatherId < 800) return 'fa-smog';
+            if (weatherId === 800) return 'fa-sun';
+            if (weatherId > 800) return 'fa-cloud';
+            return 'fa-question-circle';
+        }
+
+        // --- Initial Load ---
+        window.addEventListener('load', () => {
+            fetchAllWeatherData('Nashik', null);
+            updateDateTime();
+            setInterval(updateDateTime, 1000); // Update time every second
+        });
+    </script>
+</body>
+</html>
